@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
 # Copyright (C) 2007 Samuel Abels
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 2.1 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
 import re
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.exceptions import WorkflowException
-from .TaskSpec import TaskSpec
+from ..task import Task
+from ..exceptions import WorkflowException
+from .base import TaskSpec
+
 
 class MultiChoice(TaskSpec):
+
     """
     This class represents an if condition where multiple conditions may match
     at the same time, creating multiple outgoing branches.
@@ -28,20 +31,20 @@ class MultiChoice(TaskSpec):
     This task has one or more outputs.
     """
 
-    def __init__(self, parent, name, **kwargs):
+    def __init__(self, wf_spec, name, **kwargs):
         """
         Constructor.
-        
-        :type  parent: TaskSpec
-        :param parent: A reference to the parent task spec.
+
+        :type  wf_spec: WorkflowSpec
+        :param wf_spec: A reference to the workflow specification.
         :type  name: str
         :param name: The name of the task spec.
         :type  kwargs: dict
-        :param kwargs: See L{SpiffWorkflow.specs.TaskSpec}.
+        :param kwargs: See :class:`SpiffWorkflow.specs.TaskSpec`.
         """
-        super(MultiChoice, self).__init__(parent, name, **kwargs)
+        super(MultiChoice, self).__init__(wf_spec, name, **kwargs)
         self.cond_task_specs = []
-        self.choice          = None
+        self.choice = None
 
     def connect(self, task_spec):
         """
@@ -52,7 +55,7 @@ class MultiChoice(TaskSpec):
     def connect_if(self, condition, task_spec):
         """
         Connects a taskspec that is executed if the condition DOES match.
-        
+
         condition -- a condition (Condition)
         taskspec -- the conditional task spec
         """
@@ -72,7 +75,7 @@ class MultiChoice(TaskSpec):
         for condition, name in self.cond_task_specs:
             if name is None:
                 raise WorkflowException(self, 'Condition with no task spec.')
-            task_spec = self._parent.get_task_spec_from_name(name)
+            task_spec = self._wf_spec.get_task_spec_from_name(name)
             if task_spec is None:
                 msg = 'Condition leads to non-existent task ' + repr(name)
                 raise WorkflowException(self, msg)
@@ -88,7 +91,7 @@ class MultiChoice(TaskSpec):
 
     def _predict_hook(self, my_task):
         if self.choice:
-            outputs = [self._parent.get_task_spec_from_name(o)
+            outputs = [self._wf_spec.get_task_spec_from_name(o)
                        for o in self.choice]
         else:
             outputs = self.outputs
@@ -106,7 +109,7 @@ class MultiChoice(TaskSpec):
         outputs = []
         for condition, output in self.cond_task_specs:
             if condition is None:
-                outputs.append(self._parent.get_task_spec_from_name(output))
+                outputs.append(self._wf_spec.get_task_spec_from_name(output))
 
         for child in my_task.children:
             if child._is_definite():
@@ -125,19 +128,19 @@ class MultiChoice(TaskSpec):
             if self.choice is not None and output not in self.choice:
                 continue
             if condition is None:
-                outputs.append(self._parent.get_task_spec_from_name(output))
+                outputs.append(self._wf_spec.get_task_spec_from_name(output))
                 continue
             if not condition._matches(my_task):
                 continue
-            outputs.append(self._parent.get_task_spec_from_name(output))
+            outputs.append(self._wf_spec.get_task_spec_from_name(output))
 
         my_task._sync_children(outputs, Task.FUTURE)
         for child in my_task.children:
-            child.task_spec._update_state(child)
+            child.task_spec._update(child)
 
     def serialize(self, serializer):
-        return serializer._serialize_multi_choice(self)
+        return serializer.serialize_multi_choice(self)
 
     @classmethod
     def deserialize(self, serializer, wf_spec, s_state):
-        return serializer._deserialize_multi_choice(wf_spec, s_state)
+        return serializer.deserialize_multi_choice(wf_spec, s_state)

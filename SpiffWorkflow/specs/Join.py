@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
 # Copyright (C) 2007 Samuel Abels
 #
 # This library is free software; you can redistribute it and/or
@@ -14,14 +14,16 @@ from __future__ import division
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.exceptions import WorkflowException
-from SpiffWorkflow.specs.TaskSpec import TaskSpec
-from SpiffWorkflow.operators import valueof
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
+from ..task import Task
+from ..exceptions import WorkflowException
+from .base import TaskSpec
+from ..operators import valueof
 
 
 class Join(TaskSpec):
+
     """
     A task for synchronizing branches that were previously split using a
     conditional task, such as MultiChoice. It has two or more incoming
@@ -50,14 +52,14 @@ class Join(TaskSpec):
         directly from WAITING to completed.
 
         - COMPLETED: All predecessors have completed, and
-        L{Task.complete()} was called.
+        :class:`Task.complete()` was called.
 
     The state may also change directly from WAITING to COMPLETED if the
     Trigger pattern is used.
     """
 
     def __init__(self,
-                 parent,
+                 wf_spec,
                  name,
                  split_task=None,
                  threshold=None,
@@ -66,28 +68,29 @@ class Join(TaskSpec):
         """
         Constructor.
 
-        :type  parent: L{SpiffWorkflow.specs.WorkflowSpec}
-        :param parent: A reference to the parent (usually a workflow).
+        :type  wf_spec: :class:`SpiffWorkflow.specs.WorkflowSpec`
+        :param wf_spec: A reference to the parent (usually a workflow).
         :type  name: string
         :param name: A name for the task.
         :type  split_task: str or None
         :param split_task: The name of the task spec that was previously
                            used to split the branch. If this is None,
                            the most recent branch split is merged.
-        :type  threshold: int or L{SpiffWorkflow.operators.Attrib}
+        :type  threshold: int, :class:`SpiffWorkflow.operators.Attrib`, or None
         :param threshold: Specifies how many incoming branches need to
                           complete before the task triggers. When the limit
                           is reached, the task fires but still expects all
                           other branches to complete.
                           You may also pass an attribute, in which case
                           the value is resolved at runtime.
+                          Passing None means all incoming branches.
         :type  cancel: bool
         :param cancel: When True, any remaining incoming branches are
                        cancelled as soon as the discriminator is activated.
         :type  kwargs: dict
-        :param kwargs: See L{SpiffWorkflow.specs.TaskSpec}.
+        :param kwargs: See :class:`SpiffWorkflow.specs.TaskSpec`.
         """
-        super(Join, self).__init__(parent, name, **kwargs)
+        super(Join, self).__init__(wf_spec, name, **kwargs)
         self.split_task = split_task
         self.threshold = threshold
         self.cancel_remaining = cancel
@@ -118,11 +121,11 @@ class Join(TaskSpec):
             # children, that means the prediction may be incomplete (for
             # example, because a prediction is not yet possible at this time).
             if not child._is_definite() \
-                and len(child.task_spec.outputs) > len(child.children):
+                    and len(child.task_spec.outputs) > len(child.children):
                 return True
         return False
 
-    def _try_fire_unstructured(self, my_task, force=False):
+    def _check_threshold_unstructured(self, my_task, force=False):
         # The default threshold is the number of inputs.
         threshold = valueof(my_task, self.threshold)
         if threshold is None:
@@ -150,7 +153,7 @@ class Join(TaskSpec):
         # If the threshold was reached, get ready to fire.
         return force or completed >= threshold, waiting_tasks
 
-    def _try_fire_structured(self, my_task, force=False):
+    def _check_threshold_structured(self, my_task, force=False):
         # Retrieve a list of all activated tasks from the associated
         # task that did the conditional parallel split.
         split_task = my_task._find_ancestor_from_name(self.split_task)
@@ -166,7 +169,7 @@ class Join(TaskSpec):
 
         # Look up which tasks have already completed.
         waiting_tasks = []
-        completed     = 0
+        completed = 0
         for task in tasks:
             # Refresh path prediction.
             task.task_spec._predict(task)
@@ -181,7 +184,7 @@ class Join(TaskSpec):
         # If the threshold was reached, get ready to fire.
         return force or completed >= threshold, waiting_tasks
 
-    def _try_fire(self, my_task, force=False):
+    def _start(self, my_task, force=False):
         """
         Checks whether the preconditions for going to READY state are met.
         Returns True if the threshold was reached, False otherwise.
@@ -195,12 +198,12 @@ class Join(TaskSpec):
 
         # Check whether we may fire.
         if self.split_task is None:
-            return self._try_fire_unstructured(my_task, force)
-        return self._try_fire_structured(my_task, force)
+            return self._check_threshold_unstructured(my_task, force)
+        return self._check_threshold_structured(my_task, force)
 
-    def _update_state_hook(self, my_task):
+    def _update_hook(self, my_task):
         # Check whether enough incoming branches have completed.
-        may_fire, waiting_tasks = self._try_fire(my_task)
+        may_fire, waiting_tasks = self._start(my_task)
         if not may_fire:
             my_task._set_state(Task.WAITING)
             return
@@ -234,7 +237,8 @@ class Join(TaskSpec):
         # We are looking for all task instances that must be joined.
         # We limit our search by starting at the split point.
         if self.split_task:
-            split_task = my_task.workflow.get_task_spec_from_name(self.split_task)
+            split_task = my_task.workflow.get_task_spec_from_name(
+                self.split_task)
             split_task = my_task._find_ancestor(split_task)
         else:
             split_task = my_task.workflow.task_tree
@@ -261,13 +265,13 @@ class Join(TaskSpec):
             # changed.
             changed = task.parent.last_state_change
             if last_changed is None \
-              or changed > last_changed.parent.last_state_change:
+                    or changed > last_changed.parent.last_state_change:
                 last_changed = task
 
         # Mark the identified task instances as COMPLETED. The exception
         # is the most recently changed task, for which we assume READY.
         # By setting the state to READY only, we allow for calling
-        # L{Task.complete()}, which leads to the task tree being
+        # :class:`Task.complete()`, which leads to the task tree being
         # (re)built underneath the node.
         for task in thread_tasks:
             if task == last_changed:
@@ -288,8 +292,8 @@ class Join(TaskSpec):
             self._do_join(task)
 
     def serialize(self, serializer):
-        return serializer._serialize_join(self)
+        return serializer.serialize_join(self)
 
     @classmethod
     def deserialize(self, serializer, wf_spec, s_state):
-        return serializer._deserialize_join(wf_spec, s_state)
+        return serializer.deserialize_join(wf_spec, s_state)

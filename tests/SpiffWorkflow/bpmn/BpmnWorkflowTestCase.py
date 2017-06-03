@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
-
-from __future__ import division
 import logging
 import os
 import unittest
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.bpmn.storage.BpmnSerializer import BpmnSerializer
-from SpiffWorkflow.bpmn.storage.CompactWorkflowSerializer import CompactWorkflowSerializer
+from SpiffWorkflow.task import Task
+from SpiffWorkflow.bpmn.serializer.BpmnSerializer import BpmnSerializer
+from SpiffWorkflow.bpmn.serializer.CompactWorkflowSerializer import CompactWorkflowSerializer
 from tests.SpiffWorkflow.bpmn.PackagerForTests import PackagerForTests
 
 __author__ = 'matth'
@@ -35,6 +33,7 @@ class BpmnWorkflowTestCase(unittest.TestCase):
 
         self.workflow.do_engine_steps()
         step_name_path = step_name.split("|")
+
         def is_match(t):
             if not (t.task_spec.name == step_name_path[-1] or t.task_spec.description == step_name_path[-1]):
                 return False
@@ -50,23 +49,30 @@ class BpmnWorkflowTestCase(unittest.TestCase):
                     return False
             return True
 
-        tasks = list([t for t in self.workflow.get_tasks(Task.READY) if is_match(t)])
+        tasks = list(
+            [t for t in self.workflow.get_tasks(Task.READY) if is_match(t)])
 
-        self._do_single_step(step_name_path[-1], tasks, set_attribs, choice, only_one_instance=only_one_instance)
+        self._do_single_step(
+            step_name_path[-1], tasks, set_attribs, choice, only_one_instance=only_one_instance)
 
     def assertTaskNotReady(self, step_name):
-        tasks = list([t for t in self.workflow.get_tasks(Task.READY) if t.task_spec.name == step_name or t.task_spec.description == step_name])
-        self.assertEquals([], tasks)
+        tasks = list([t for t in self.workflow.get_tasks(Task.READY)
+                     if t.task_spec.name == step_name or t.task_spec.description == step_name])
+        self.assertEqual([], tasks)
 
     def _do_single_step(self, step_name, tasks, set_attribs=None, choice=None, only_one_instance=True):
 
         if only_one_instance:
-            self.assertEqual(len(tasks), 1, 'Did not find one task for \'%s\' (got %d)' % (step_name, len(tasks)))
+            self.assertEqual(
+                len(tasks), 1, 'Did not find one task for \'%s\' (got %d)' % (step_name, len(tasks)))
         else:
-            self.assertNotEqual(len(tasks), 0, 'Did not find any tasks for \'%s\'' % (step_name))
+            self.assertNotEqual(
+                len(tasks), 0, 'Did not find any tasks for \'%s\'' % (step_name))
 
-        self.assertTrue(tasks[0].task_spec.name == step_name or tasks[0].task_spec.description == step_name,
-            'Expected step %s, got %s (%s)' % (step_name, tasks[0].task_spec.description, tasks[0].task_spec.name))
+        self.assertTrue(
+            tasks[0].task_spec.name == step_name or tasks[
+                0].task_spec.description == step_name,
+                       'Expected step %s, got %s (%s)' % (step_name, tasks[0].task_spec.description, tasks[0].task_spec.name))
         if not set_attribs:
             set_attribs = {}
 
@@ -82,16 +88,17 @@ class BpmnWorkflowTestCase(unittest.TestCase):
         logging.debug('Saving state: %s', state)
         before_dump = self.workflow.get_dump()
         self.restore(state)
-        #We should still have the same state:
+        # We should still have the same state:
         after_dump = self.workflow.get_dump()
         after_state = self._get_workflow_state()
         if state != after_state:
             logging.debug("Before save:\n%s", before_dump)
             logging.debug("After save:\n%s", after_dump)
-        self.assertEquals(state, after_state)
+        self.assertEqual(state, after_state)
 
     def restore(self, state):
-        self.workflow = CompactWorkflowSerializer().deserialize_workflow(state, workflow_spec=self.spec)
+        self.workflow = CompactWorkflowSerializer().deserialize_workflow(
+            state, workflow_spec=self.spec)
 
     def get_read_only_workflow(self):
         state = self._get_workflow_state()

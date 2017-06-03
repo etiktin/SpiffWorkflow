@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
 # Copyright (C) 2007 Samuel Abels
 #
 # This library is free software; you can redistribute it and/or
@@ -17,22 +17,23 @@ from __future__ import division
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
 import logging
 
-from SpiffWorkflow.specs.TaskSpec import TaskSpec
+from .base import TaskSpec
 
 LOG = logging.getLogger(__name__)
 
 
 class Transform(TaskSpec):
+
     """
     This class implements a task that transforms input/output data.
     """
 
-    def __init__(self, parent, name, transforms=None, **kwargs):
+    def __init__(self, wf_spec, name, transforms=None, **kwargs):
         """
         Constructor.
 
-        :type  parent: TaskSpec
-        :param parent: A reference to the parent task spec.
+        :type  wf_spec: WorkflowSpec
+        :param wf_spec: A reference to the workflow specification.
         :type  name: str
         :param name: The name of the task spec.
         :type  transforms: list
@@ -42,28 +43,28 @@ class Transform(TaskSpec):
                         achieved by referencing the my_task.* and self.*
                         variables'
         :type  kwargs: dict
-        :param kwargs: See L{SpiffWorkflow.specs.TaskSpec}.
+        :param kwargs: See :class:`SpiffWorkflow.specs.TaskSpec`.
         """
-        assert parent  is not None
-        assert name    is not None
-        TaskSpec.__init__(self, parent, name, **kwargs)
+        assert wf_spec is not None
+        assert name is not None
+        TaskSpec.__init__(self, wf_spec, name, **kwargs)
         self.transforms = transforms
 
-    def _update_state_hook(self, my_task):
+    def _update_hook(self, my_task):
         if self.transforms:
             for transform in self.transforms:
                 LOG.debug("Executing transform", extra=dict(data=transform))
                 exec(transform)
-        super(Transform, self)._update_state_hook(my_task)
+        super(Transform, self)._update_hook(my_task)
 
     def serialize(self, serializer):
-        s_state = serializer._serialize_simple(self)
+        s_state = serializer.serialize_simple(self)
         s_state['transforms'] = self.transforms
         return s_state
 
     @classmethod
     def deserialize(cls, serializer, wf_spec, s_state):
         spec = Transform(wf_spec, s_state['name'])
-        serializer._deserialize_task_spec(wf_spec, s_state, spec=spec)
+        serializer.deserialize_task_spec(wf_spec, s_state, spec=spec)
         spec.transforms = s_state['transforms']
         return spec

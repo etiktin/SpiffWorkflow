@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
+from builtins import object
 # Copyright (C) 2012 Matthew Hampton
 #
 # This library is free software; you can redistribute it and/or
@@ -14,11 +15,14 @@ from __future__ import division
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
 
-from SpiffWorkflow.operators import Operator
+from ..operators import Operator
+
 
 class BpmnScriptEngine(object):
+
     """
     Used during execution of a BPMN workflow to evaluate condition / value expressions. These are used by
     Gateways, and by Catching Events (non-message ones).
@@ -47,4 +51,3 @@ class BpmnScriptEngine(object):
     def _eval(self, task, expression, **kwargs):
         locals().update(kwargs)
         return eval(expression)
-

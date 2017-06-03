@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
 # Copyright (C) 2007 Samuel Abels
 #
 # This library is free software; you can redistribute it and/or
@@ -14,12 +14,14 @@ from __future__ import division
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-from SpiffWorkflow.exceptions import WorkflowException
-from SpiffWorkflow.specs.TaskSpec import TaskSpec
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
+from ..exceptions import WorkflowException
+from .base import TaskSpec
 
 
 class StartTask(TaskSpec):
+
     """
     This class implements the task the is placed at the beginning
     of each workflow. The task has no inputs and at least one output.
@@ -27,16 +29,16 @@ class StartTask(TaskSpec):
     parallel split.
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, wf_spec, name='Start', **kwargs):
         """
         Constructor. The name of this task is *always* 'Start'.
 
-        :type  parent: TaskSpec
-        :param parent: A reference to the parent task spec.
+        :type  wf_spec: WorkflowSpec
+        :param wf_spec: A reference to the workflow specification.
         :type  kwargs: dict
-        :param kwargs: See L{SpiffWorkflow.specs.TaskSpec}.
+        :param kwargs: See :class:`SpiffWorkflow.specs.TaskSpec`.
         """
-        TaskSpec.__init__(self, parent, 'Start', **kwargs)
+        TaskSpec.__init__(self, wf_spec, name, **kwargs)
 
     def _connect_notify(self, task_spec):
         """
@@ -55,8 +57,8 @@ class StartTask(TaskSpec):
             raise WorkflowException(self, 'No output task connected.')
 
     def serialize(self, serializer):
-        return serializer._serialize_start_task(self)
+        return serializer.serialize_start_task(self)
 
     @classmethod
     def deserialize(cls, serializer, wf_spec, s_state):
-        return serializer._deserialize_start_task(wf_spec, s_state)
+        return serializer.deserialize_start_task(wf_spec, s_state)

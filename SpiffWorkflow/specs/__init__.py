@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
+from .base import TaskSpec
 from .AcquireMutex import AcquireMutex
 from .Cancel import Cancel
 from .CancelTask import CancelTask
@@ -16,6 +17,7 @@ from .ReleaseMutex import ReleaseMutex
 from .Simple import Simple
 from .StartTask import StartTask
 from .SubWorkflow import SubWorkflow
+from .ThreadStart import ThreadStart
 from .ThreadMerge import ThreadMerge
 from .ThreadSplit import ThreadSplit
 from .Transform import Transform

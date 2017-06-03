@@ -1,27 +1,30 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
 # Copyright (C) 2007 Samuel Abels
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 2.1 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.exceptions import WorkflowException
-from SpiffWorkflow.specs.TaskSpec import TaskSpec
-from SpiffWorkflow.operators import valueof
-from SpiffWorkflow.specs import Join
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
+from ..task import Task
+from ..exceptions import WorkflowException
+from .base import TaskSpec
+from ..operators import valueof
+from ..specs import Join
+
 
 class ThreadMerge(Join):
+
     """
     This class represents a task for synchronizing branches that were
     previously split using a a ThreadSplit.
@@ -29,27 +32,27 @@ class ThreadMerge(Join):
     """
 
     def __init__(self,
-                 parent,
+                 wf_spec,
                  name,
                  split_task,
                  **kwargs):
         """
         Constructor.
-        
-        :type  parent: L{SpiffWorkflow.specs.WorkflowSpec}
-        :param parent: A reference to the parent (usually a workflow).
+
+        :type  wf_spec: :class:`SpiffWorkflow.specs.WorkflowSpec`
+        :param wf_spec: A reference to the parent (usually a workflow).
         :type  name: string
         :param name: A name for the task.
         :type  split_task: str
         :param split_task: The name of the task spec that was previously
                            used to split the branch.
         :type  kwargs: dict
-        :param kwargs: See L{SpiffWorkflow.specs.Join}.
+        :param kwargs: See :class:`SpiffWorkflow.specs.Join`.
         """
         assert split_task is not None
-        Join.__init__(self, parent, name, split_task, **kwargs)
+        Join.__init__(self, wf_spec, name, split_task, **kwargs)
 
-    def _try_fire(self, my_task):
+    def _start(self, my_task):
         # If the threshold was already reached, there is nothing else to do.
         if my_task._has_state(Task.COMPLETED):
             return False
@@ -71,7 +74,7 @@ class ThreadMerge(Join):
 
         # Look up which tasks have already completed.
         waiting_tasks = []
-        completed     = 0
+        completed = 0
         for task in tasks:
             # Refresh path prediction.
             task.task_spec._predict(task)
@@ -96,27 +99,28 @@ class ThreadMerge(Join):
         # we need to revisit it.
         return False
 
-    def _update_state_hook(self, my_task):
-        if not self._try_fire(my_task):
+    def _update_hook(self, my_task):
+        if not self._start(my_task):
             my_task._set_state(Task.WAITING)
             return
 
-        split_task_spec = my_task.workflow.get_task_spec_from_name(self.split_task)
-        split_task      = my_task._find_ancestor(split_task_spec)
+        split_task_spec = my_task.workflow.get_task_spec_from_name(
+            self.split_task)
+        split_task = my_task._find_ancestor(split_task_spec)
 
         # Find the inbound task that was completed last.
         last_changed = None
-        tasks        = []
+        tasks = []
         for task in split_task._find_any(self):
             if self.split_task and task._is_descendant_of(my_task):
                 continue
             changed = task.parent.last_state_change
             if last_changed is None \
-              or changed > last_changed.parent.last_state_change:
+                    or changed > last_changed.parent.last_state_change:
                 last_changed = task
             tasks.append(task)
 
-        # Mark all tasks in this thread that reference this task as 
+        # Mark all tasks in this thread that reference this task as
         # completed, except for the first one, which should be READY.
         for task in tasks:
             if task == last_changed:
@@ -127,8 +131,8 @@ class ThreadMerge(Join):
                 task._drop_children()
 
     def serialize(self, serializer):
-        return serializer._serialize_thread_merge(self)
+        return serializer.serialize_thread_merge(self)
 
     @classmethod
     def deserialize(self, serializer, wf_spec, s_state):
-        return serializer._deserialize_thread_merge(wf_spec, s_state)
+        return serializer.deserialize_thread_merge(wf_spec, s_state)

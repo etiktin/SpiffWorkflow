@@ -10,8 +10,8 @@ DISTDIR=/pub/code/releases/spiff_workflow
 ###################################################################
 .PHONY : clean
 clean:
-	find . -name "*.pyc" -o -name "*.pyo" | xargs -n1 rm -f
-	find . -name "*.egg-info" | xargs -n1 rm -r
+	find . -name "*.pyc" -o -name "*.pyo" | xargs -rn1 rm -f
+	find . -name "*.egg-info" | xargs -rn1 rm -r
 	rm -Rf build
 	cd doc; make clean
 
@@ -53,13 +53,18 @@ tarbz:
 	python setup.py sdist --formats bztar
 	./version.sh --reset
 
+wheel:
+	./version.sh
+	python setup.py bdist_wheel --universal
+	./version.sh --reset
+
 deb:
 	./version.sh
 	debuild -S -sa
 	cd ..; sudo pbuilder build $(NAME)_$(VERSION)-0ubuntu1.dsc; cd -
 	./version.sh --reset
 
-dist: targz tarbz
+dist: targz tarbz wheel
 
 ###################################################################
 # Publishers.

@@ -14,17 +14,19 @@ from __future__ import division
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
 import logging
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.bpmn.specs.UnstructuredJoin import UnstructuredJoin
-from SpiffWorkflow.specs.Simple import Simple
-from SpiffWorkflow.specs.WorkflowSpec import WorkflowSpec
+from ...task import Task
+from .UnstructuredJoin import UnstructuredJoin
+from ...specs.Simple import Simple
+from ...specs.WorkflowSpec import WorkflowSpec
 import xml.etree.ElementTree as ET
+
 
 class _EndJoin(UnstructuredJoin):
 
-    def _try_fire_unstructured(self, my_task, force=False):
+    def _check_threshold_unstructured(self, my_task, force=False):
         # Look at the tree to find all ready and waiting tasks (excluding ourself).
         # The EndJoin waits for everyone!
         waiting_tasks = []
@@ -45,8 +47,9 @@ class _EndJoin(UnstructuredJoin):
             if is_mine:
                 waiting_tasks.append(task)
 
-        if len(waiting_tasks)==0:
-            logging.debug('Endjoin Task ready: %s (ready/waiting tasks: %s)', my_task, list(my_task.workflow.get_tasks(Task.READY | Task.WAITING)))
+        if len(waiting_tasks) == 0:
+            logging.debug('Endjoin Task ready: %s (ready/waiting tasks: %s)',
+                          my_task, list(my_task.workflow.get_tasks(Task.READY | Task.WAITING)))
 
         return force or len(waiting_tasks) == 0, waiting_tasks
 
@@ -56,6 +59,7 @@ class _EndJoin(UnstructuredJoin):
 
 
 class BpmnProcessSpec(WorkflowSpec):
+
     """
     This class represents the specification of a BPMN process workflow. This specialises the
     standard Spiff WorkflowSpec class with a few extra methods and attributes.
@@ -149,8 +153,4 @@ class BpmnProcessSpec(WorkflowSpec):
             if spec.svg and not spec.svg in svg_done:
                 svg_content += '<p>' + spec.svg + "</p>"
                 svg_done.add(spec.svg)
-        return html_text.replace('___CONTENT___',svg_content)
-
-
-
-
+        return html_text.replace('___CONTENT___', svg_content)

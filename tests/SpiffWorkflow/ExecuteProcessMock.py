@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
-
-from __future__ import division
-#!/usr/bin/python
 import time
+
 
 def main():
     time.sleep(0.5)

@@ -14,22 +14,25 @@ from __future__ import division
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
 from collections import deque
 
 import logging
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.bpmn.specs.BpmnSpecMixin import BpmnSpecMixin
-from SpiffWorkflow.specs.Join import Join
+from ...task import Task
+from .BpmnSpecMixin import BpmnSpecMixin
+from ...specs.Join import Join
 
 LOG = logging.getLogger(__name__)
 
+
 class UnstructuredJoin(Join, BpmnSpecMixin):
+
     """
     A helper subclass of Join that makes it work in a slightly friendlier way for the BPMN style threading
     """
 
-    def _try_fire_unstructured(self, my_task, force=False):
+    def _check_threshold_unstructured(self, my_task, force=False):
         raise NotImplementedError("Please implement this in the subclass")
 
     def _get_inputs_with_tokens(self, my_task):
@@ -52,7 +55,8 @@ class UnstructuredJoin(Join, BpmnSpecMixin):
         for task in tasks:
             if task.parent._has_state(Task.COMPLETED) and (task._has_state(Task.WAITING) or task == my_task):
                 if task.parent.task_spec in completed_inputs:
-                    raise NotImplementedError("Unsupported looping behaviour: two threads waiting on the same sequence flow.")
+                    raise NotImplementedError(
+                        "Unsupported looping behaviour: two threads waiting on the same sequence flow.")
                 completed_inputs.add(task.parent.task_spec)
             else:
                 waiting_tasks.append(task.parent)
@@ -76,7 +80,8 @@ class UnstructuredJoin(Join, BpmnSpecMixin):
         # We are looking for all task instances that must be joined.
         # We limit our search by starting at the split point.
         if self.split_task:
-            split_task = my_task.workflow.get_task_spec_from_name(self.split_task)
+            split_task = my_task.workflow.get_task_spec_from_name(
+                self.split_task)
             split_task = my_task._find_ancestor(split_task)
         else:
             split_task = my_task.workflow.task_tree
@@ -103,7 +108,7 @@ class UnstructuredJoin(Join, BpmnSpecMixin):
             if task._is_finished():
                 continue
 
-            #For an inclusive join, this can happen - it's a future join
+            # For an inclusive join, this can happen - it's a future join
             if not task.parent._is_finished():
                 continue
 
@@ -114,13 +119,13 @@ class UnstructuredJoin(Join, BpmnSpecMixin):
             # changed.
             changed = task.parent.last_state_change
             if last_changed is None\
-            or changed > last_changed.parent.last_state_change:
+                    or changed > last_changed.parent.last_state_change:
                 last_changed = task
 
         # Mark the identified task instances as COMPLETED. The exception
         # is the most recently changed task, for which we assume READY.
         # By setting the state to READY only, we allow for calling
-        # L{Task.complete()}, which leads to the task tree being
+        # :class:`Task.complete()`, which leads to the task tree being
         # (re)built underneath the node.
         for task in thread_tasks:
             if task == last_changed:
@@ -130,8 +135,7 @@ class UnstructuredJoin(Join, BpmnSpecMixin):
                 task.state = Task.COMPLETED
                 task._drop_children()
 
-
-    def _update_state_hook(self, my_task):
+    def _update_hook(self, my_task):
 
         if my_task._is_predicted():
             self._predict(my_task)
@@ -143,5 +147,6 @@ class UnstructuredJoin(Join, BpmnSpecMixin):
             my_task._set_state(Task.WAITING)
             return
 
-        logging.debug('UnstructuredJoin._update_state_hook: %s (%s) - Children: %s', self.name, self.description, len(my_task.children))
-        super(UnstructuredJoin, self)._update_state_hook(my_task)
+        logging.debug('UnstructuredJoin._update_hook: %s (%s) - Children: %s',
+                      self.name, self.description, len(my_task.children))
+        super(UnstructuredJoin, self)._update_hook(my_task)

@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
 
-from __future__ import division
+from __future__ import division, absolute_import
 import sys
-from SpiffWorkflow.bpmn.storage.BpmnSerializer import BpmnSerializer
+from SpiffWorkflow.bpmn.serializer.BpmnSerializer import BpmnSerializer
 from tests.SpiffWorkflow.bpmn.PackagerForTests import PackagerForTests
 
 __author__ = 'matth'
+
 
 def main():
     workflow_files = sys.argv[1]

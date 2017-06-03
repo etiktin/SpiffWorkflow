@@ -14,16 +14,19 @@ from __future__ import division
 #
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
 from collections import deque
 
 import logging
-from SpiffWorkflow.Task import Task
-from SpiffWorkflow.bpmn.specs.UnstructuredJoin import UnstructuredJoin
+from ...task import Task
+from .UnstructuredJoin import UnstructuredJoin
 
 LOG = logging.getLogger(__name__)
 
+
 class ParallelGateway(UnstructuredJoin):
+
     """
     Task Spec for a bpmn:parallelGateway node.
     From the specification of BPMN (http://www.omg.org/spec/BPMN/2.0/PDF - document number:formal/2011-01-03):
@@ -39,7 +42,7 @@ class ParallelGateway(UnstructuredJoin):
 
     """
 
-    def _try_fire_unstructured(self, my_task, force=False):
+    def _check_threshold_unstructured(self, my_task, force=False):
         completed_inputs, waiting_tasks = self._get_inputs_with_tokens(my_task)
 
         # If the threshold was reached, get ready to fire.

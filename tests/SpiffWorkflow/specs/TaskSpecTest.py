@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import, division
-
-from __future__ import division
 import sys
 import unittest
 import re
@@ -10,8 +8,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 from SpiffWorkflow.specs import WorkflowSpec, Simple, Join
 from SpiffWorkflow.exceptions import WorkflowException
-from SpiffWorkflow.specs.TaskSpec import TaskSpec
-from SpiffWorkflow.storage import DictionarySerializer
+from SpiffWorkflow.specs import TaskSpec
+from SpiffWorkflow.serializer.dict import DictionarySerializer
 
 
 class TaskSpecTest(unittest.TestCase):
@@ -77,16 +75,23 @@ class TaskSpecTest(unittest.TestCase):
     def testSerialize(self):
         serializer = DictionarySerializer()
         spec = self.create_instance()
-        serialized = spec.serialize(serializer)
-        self.assert_(isinstance(serialized, dict))
+
+        try:
+            serialized = spec.serialize(serializer)
+            self.assertIsInstance(serialized, dict)
+        except NotImplementedError:
+            self.assertIsInstance(spec, TaskSpec)
+            self.assertRaises(NotImplementedError,
+                              spec.__class__.deserialize, None, None, None)
+            return
 
         new_wf_spec = WorkflowSpec()
         new_spec = spec.__class__.deserialize(serializer, new_wf_spec,
-                serialized)
+                                              serialized)
         before = spec.serialize(serializer)
         after = new_spec.serialize(serializer)
         self.assertEqual(before, after, 'Before:\n%s\nAfter:\n%s\n' % (before,
-                after))
+                                                                       after))
 
     def testAncestors(self):
         T1 = Simple(self.wf_spec, 'T1')
@@ -102,10 +107,10 @@ class TaskSpecTest(unittest.TestCase):
         T2B.connect(M)
         T3.follow(M)
 
-        self.assertEquals(T1.ancestors(), [self.wf_spec.start])
-        self.assertEquals(T2A.ancestors(), [T1, self.wf_spec.start])
-        self.assertEquals(T2B.ancestors(), [T1, self.wf_spec.start])
-        self.assertEquals(M.ancestors(), [T2A, T1, self.wf_spec.start, T2B])
+        self.assertEqual(T1.ancestors(), [self.wf_spec.start])
+        self.assertEqual(T2A.ancestors(), [T1, self.wf_spec.start])
+        self.assertEqual(T2B.ancestors(), [T1, self.wf_spec.start])
+        self.assertEqual(M.ancestors(), [T2A, T1, self.wf_spec.start, T2B])
         self.assertEqual(len(T3.ancestors()), 5)
 
     def test_ancestors_cyclic(self):
@@ -116,8 +121,8 @@ class TaskSpecTest(unittest.TestCase):
         T2.follow(T1)
         T1.connect(T2)
 
-        self.assertEquals(T1.ancestors(), [self.wf_spec.start])
-        self.assertEquals(T2.ancestors(), [T1, self.wf_spec.start])
+        self.assertEqual(T1.ancestors(), [self.wf_spec.start])
+        self.assertEqual(T2.ancestors(), [T1, self.wf_spec.start])
 
 
 def suite():

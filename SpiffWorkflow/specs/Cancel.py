@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
+from __future__ import division, absolute_import
 # Copyright (C) 2007 Samuel Abels
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 2.1 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-from SpiffWorkflow.exceptions import WorkflowException
-from SpiffWorkflow.specs.TaskSpec import TaskSpec
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301  USA
+from ..exceptions import WorkflowException
+from .base import TaskSpec
+
 
 class Cancel(TaskSpec):
+
     """
     This class cancels a complete workflow.
     If more than one input is connected, the task performs an implicit
@@ -27,20 +30,20 @@ class Cancel(TaskSpec):
     parallel split.
     """
 
-    def __init__(self, parent, name, success = False, **kwargs):
+    def __init__(self, wf_spec, name, success=False, **kwargs):
         """
         Constructor.
 
-        :type  parent: TaskSpec
-        :param parent: A reference to the parent task spec.
+        :type  wf_spec: WorkflowSpec
+        :param wf_spec: A reference to the workflow specification.
         :type  name: str
         :param name: The name of the task spec.
         :type  success: bool
         :param success: Whether to cancel successfully or unsuccessfully.
         :type  kwargs: dict
-        :param kwargs: See L{SpiffWorkflow.specs.TaskSpec}.
+        :param kwargs: See :class:`SpiffWorkflow.specs.TaskSpec`.
         """
-        TaskSpec.__init__(self, parent, name, **kwargs)
+        TaskSpec.__init__(self, wf_spec, name, **kwargs)
         self.cancel_successfully = success
 
     def test(self):
@@ -57,8 +60,8 @@ class Cancel(TaskSpec):
         TaskSpec._on_complete_hook(self, my_task)
 
     def serialize(self, serializer):
-        return serializer._serialize_cancel(self)
+        return serializer.serialize_cancel(self)
 
     @classmethod
     def deserialize(self, serializer, wf_spec, s_state):
-        return serializer._deserialize_cancel(wf_spec, s_state)
+        return serializer.deserialize_cancel(wf_spec, s_state)

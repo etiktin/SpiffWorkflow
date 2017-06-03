@@ -2,9 +2,13 @@ language: python
 python:
   - "2.7"
   - "3.3"
-
-# command to install dependencies
-install: "python setup.py develop"
-
-# command to run tests
-script: "cd tests && sh run_suite.sh"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+install:
+  - "pip install -r requirements.txt"
+  - "pip install celery"
+  - "pip install coveralls"
+script: cd tests/SpiffWorkflow; coverage run --source=SpiffWorkflow -m unittest discover -v . "*Test.py"
+after_success:
+  coveralls
